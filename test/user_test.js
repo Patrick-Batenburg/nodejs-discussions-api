@@ -6,7 +6,7 @@ const expect = chai.expect
 
 chai.use(chaiHttp);
 describe('Users API interface', () => {
-    let username = '1' + Math.floor((Math.random() * 1000000000000) + 1);
+    let username = '1';
     let name = {
         first: 'Patrick',
         middle: 'van',
