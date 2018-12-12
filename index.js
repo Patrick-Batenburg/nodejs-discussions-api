@@ -15,17 +15,29 @@ const routes = require(APP_ROUTE_PATH);
 const ValidationManager = require(APP_MANAGER_PATH + 'validation');
 const authManager = require(APP_MANAGER_PATH + 'auth');
 const validationManager = new ValidationManager();
+const cors = require('cors')
+require('dotenv').config();
+
+app.use(cors());
+
 // Connect to DB
 mongoose.Promise = global.Promise;
 mongoose.connect(config.db.MONGO_CONNECT_URL);
+
 // Use json formatter middleware
 app.use(bodyParser.json());
+
 app.use(authManager.providePassport().initialize());
 // Set Up validation middleware
 app.use(validationManager.provideDefaultValidator());
+
 // Setup routes
 app.use('/', routes);
 
-app.listen(global.config.server.PORT, function () {
-    console.log('App is running on ' + global.config.server.PORT);
-});
+if(!module.parent){ 
+    app.listen(global.config.server.PORT, function () {
+        console.log('App is running on ' + global.config.server.PORT);
+    });
+}
+
+module.exports = app;

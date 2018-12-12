@@ -10,30 +10,38 @@ class UserHandler {
 
     static get USER_VALIDATION_SCHEME() {
         return {
-            'firstName': {
+            'username': {
                 notEmpty: true,
                 isLength: {
                     options: [{
-                        min: 2,
+                        min: 1,
                         max: 15
                     }],
-                    errorMessage: 'First getName must be between 2 and 15 chars long'
+                    errorMessage: 'Username must be between 1 and 15 chars long'
                 },
                 errorMessage: 'Invalid First Name'
             },
-            'middleName': {
-                notEmpty: true
-            },
-            'lastName': {
+            'name.first': {
                 notEmpty: true,
                 isLength: {
                     options: [{
-                        min: 2,
+                        min: 1,
                         max: 15
                     }],
-                    errorMessage: 'Lastname must be between 2 and 15 chars long'
+                    errorMessage: 'First Name must be between 1 and 15 chars long'
                 },
                 errorMessage: 'Invalid First Name'
+            },
+            'name.last': {
+                notEmpty: true,
+                isLength: {
+                    options: [{
+                        min: 1,
+                        max: 15
+                    }],
+                    errorMessage: 'Last Name must be between 1 and 15 chars long'
+                },
+                errorMessage: 'Invalid Last Name'
             },
             'email': {
                 isEmail: {
@@ -64,10 +72,12 @@ class UserHandler {
                     let errorMessages = result.array().map(function (elem) {
                         return elem.msg;
                     });
+
                     throw new ValidationError('There have been validation errors: ' + errorMessages.join(' && '));
                 }
 
                 let userId = req.params.id;
+
                 if (userToken.id !== req.params.id) {
                     throw new UnauthorizedError("Provided id doesn't match with  the requested user id")
                 } else {
@@ -81,7 +91,6 @@ class UserHandler {
                         });
                     });
                 }
-
             })
             .then((user) => {
                 callback.onSuccess(user);
@@ -94,19 +103,24 @@ class UserHandler {
     createNewUser(req, callback) {
         let data = req.body;
         let validator = this._validator;
-        req.checkBody(UserHandler.USER_VALIDATION_SCHEME);
+        //req.checkBody(UserHandler.USER_VALIDATION_SCHEME);        
         req.getValidationResult()
             .then(function (result) {
                 if (!result.isEmpty()) {
                     let errorMessages = result.array().map(function (elem) {
                         return elem.msg;
                     });
+
                     throw new ValidationError('There are validation errors: ' + errorMessages.join(' && '));
                 }
+
                 return new UserModel({
-                    firstName: validator.trim(data.firstName),
-                    middleName: validator.trim(data.middleName),
-                    lastName: validator.trim(data.lastName),
+                    username: validator.trim(data.username),
+                    name: {
+                        first: validator.trim(data.name.first),
+                        middle: validator.trim(data.name.middle),
+                        last: validator.trim(data.name.last),
+                    },
                     email: validator.trim(data.email),
                     password: validator.trim(data.password)
                 });
@@ -114,7 +128,7 @@ class UserHandler {
             .then((user) => {
                 return new Promise(function (resolve, reject) {
                     UserModel.find({
-                        email: user.email
+                        username: user.username
                     }, function (err, docs) {
                         if (docs.length) {
                             reject(new AlreadyExistsError("User already exists"));

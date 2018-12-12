@@ -12,9 +12,16 @@ let schemaOptions = {
 };
 
 let UserSchema = new Schema({
-    firstName: String,
-    middleName: String,
-    lastName: String,
+    username: {
+        type: String,
+        required: true,
+        unique: true
+    },
+    name: {
+        first: String,
+        middle: String,
+        last: String
+    },
     salt: {
         type: String,
         required: true
@@ -30,26 +37,31 @@ let UserSchema = new Schema({
     email: String,
     hashedPassword: {
         type: String,
-        required: true,
+        required: true
     },
 }, schemaOptions);
+
+UserSchema.virtual('id').get(function () {
+    return this._id;
+});
 
 UserSchema.methods.toJSON = function () {
     let obj = this.toObject();
     delete obj.hashedPassword;
     delete obj.__v;
+    delete obj._id;
     delete obj.salt;
     return obj
 };
 
-UserSchema.virtual('fullName').get(function () {
-    let fullName = this.firstName + ' ';
+UserSchema.virtual('name.full').get(function () {
+    let fullName = this.name.first + ' ';
 
-    if (this.middleName != null) {
-        fullName += this.middleName + ' ';
+    if (this.name.middle) {
+        fullName += this.name.middle + ' ';
     }
 
-    fullName += this.lastName;
+    fullName += this.name.last;
 
     return fullName;
 });

@@ -23,7 +23,7 @@ class UserController extends BaseController {
         })(req, res, next);
     }
 
-    create(req, res) {
+    create(req, res) {        
         let responseManager = this._responseManager;
         this.authenticate(req, res, () => {
             this._authHandler.createNewUser(req, responseManager.getDefaultResponseHandler(res));

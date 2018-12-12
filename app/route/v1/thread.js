@@ -5,7 +5,7 @@ let threadController = new ThreadController();
 router.get('/', threadController.getAll);
 router.get('/:id', threadController.get);
 router.post('/', threadController.create);
-router.delete('/:id', threadController.remove);
+router.delete('/:threadId/:userId', threadController.remove);
 router.put('/:id', threadController.update);
 
 module.exports = router;

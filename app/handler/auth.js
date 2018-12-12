@@ -14,9 +14,10 @@ class AuthHandler extends BaseAutoBindedClass {
 
     issueNewToken(req, user, callback) {
         let that = this;
+
         if (user) {
             let userToken = that._authManager.signToken("jwt-rs-auth", that._provideTokenPayload(user), that._provideTokenOptions());
-            callback.onSuccess(userToken);
+            callback.onSuccess({ id: user._id, username: user.username, token: userToken.token });
         } else {
             callback.onError(new NotFoundError("User not found"));
         }

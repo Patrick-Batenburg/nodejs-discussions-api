@@ -34,7 +34,7 @@ class ThreadHandler extends BaseAutoBindedClass {
                 },
                 errorMessage: 'Invalid thread content'
             },
-            'authorId': {
+            'author.id': {
                 isMongoId: {
                     errorMessage: 'Invalid Author Id'
                 },
@@ -54,19 +54,23 @@ class ThreadHandler extends BaseAutoBindedClass {
                     let errorMessages = result.array().map(function (elem) {
                         return elem.msg;
                     });
+
                     throw new ValidationError('There are validation errors: ' + errorMessages.join(' && '));
                 }
 
                 newThread = new ThreadModel({
                     title: validator.trim(data.title),
                     content: validator.trim(data.content),
-                    authorId: data.authorId,
+                    author: {
+                        id: data.author.id,
+                        username: ''
+                    }
                 });
 
-                return UserModel.findById(data.authorId);           
+                return UserModel.findById(data.author.id);
             })
             .then((user) => {
-                newThread.username = user.fullName;
+                newThread.author.username = user.username;
                 return newThread;
             })
             .then((thread) => {
@@ -83,37 +87,41 @@ class ThreadHandler extends BaseAutoBindedClass {
 
     deleteThread(req, callback) {
         let data = req.body;
-        req.checkParams('id', 'Invalid thread id provided').isMongoId();
+        req.checkParams('threadId', 'Invalid thread id provided').isMongoId();
+        req.checkParams('userId', 'Invalid user id provided').isMongoId();
         req.getValidationResult()
             .then(function (result) {
                 if (!result.isEmpty()) {
                     let errorMessages = result.array().map(function (elem) {
                         return elem.msg;
                     });
+
                     throw new ValidationError('There are validation errors: ' + errorMessages.join(' && '));
                 }
+
                 return new Promise(function (resolve, reject) {
                     ThreadModel.findOne({
-                        _id: req.params.id
+                        _id: req.params.threadId,
+                        'author.id': req.params.userId
                     }, function (err, thread) {
                         if (err !== null) {
                             reject(err);
                         } else {
                             if (!thread) {
-                                reject(new NotFoundError("Thread not found"));
+                                reject(new NotFoundError('Thread not found'));
                             } else {
                                 resolve(thread);
                             }
                         }
-                    })
+                    });
                 });
             })
             .then((thread) => {
                 thread.remove();
                 return thread;
             })
-            .then((saved) => {
-                callback.onSuccess(saved);
+            .then((deleted) => {
+                callback.onSuccess(deleted);
             })
             .catch((error) => {
                 callback.onError(error);
@@ -123,20 +131,25 @@ class ThreadHandler extends BaseAutoBindedClass {
     updateThread(req, callback) {
         let data = req.body;
         let validator = this._validator;
-        req.checkBody(ThreadHandler.THREAD_VALIDATION_SCHEME);
+        let validationScheme = ThreadHandler.THREAD_VALIDATION_SCHEME;
+        delete validationScheme.title;
+        req.checkBody(validationScheme);
         req.getValidationResult()
             .then(function (result) {
                 if (!result.isEmpty()) {
                     let errorMessages = result.array().map(function (elem) {
                         return elem.msg;
                     });
+
                     throw new ValidationError('There are validation errors: ' + errorMessages.join(' && '));
                 }
+                
                 return new Promise(function (resolve, reject) {
                     ThreadModel.findOne({
-                        _id: req.params.id
+                        _id: req.params.id,
+                        'author.id': data.author.id
                     }, function (err, thread) {
-                        if (err !== null) {
+                        if (err) {
                             reject(err);
                         } else {
                             if (!thread) {
@@ -145,17 +158,18 @@ class ThreadHandler extends BaseAutoBindedClass {
                                 resolve(thread);
                             }
                         }
-                    })
+                    });
                 });
             })
             .then((thread) => {
-                thread.content = validator.trim(data.content);
-                thread.title = validator.trim(data.title);
-                thread.save();
-                return thread;
+                thread.set({
+                    content: validator.trim(data.content)
+                });
+                
+                return thread.save();
             })
-            .then((saved) => {
-                callback.onSuccess(saved);
+            .then((updated) => {
+                callback.onSuccess(updated);
             })
             .catch((error) => {
                 callback.onError(error);
@@ -171,8 +185,10 @@ class ThreadHandler extends BaseAutoBindedClass {
                     let errorMessages = result.array().map(function (elem) {
                         return elem.msg;
                     });
+
                     throw new ValidationError('There are validation errors: ' + errorMessages.join(' && '));
                 }
+
                 return new Promise(function (resolve, reject) {
                     ThreadModel.findOne({
                         _id: req.params.id
@@ -181,12 +197,12 @@ class ThreadHandler extends BaseAutoBindedClass {
                             reject(err);
                         } else {
                             if (!thread) {
-                                reject(new NotFoundError("Thread not found"));
+                                reject(new NotFoundError('Thread not found'));
                             } else {
                                 resolve(thread);
                             }
                         }
-                    })
+                    }).populate('comments', '-__v');
                 });
             })
             .then((thread) => {
